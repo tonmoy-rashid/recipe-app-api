@@ -1,15 +1,11 @@
----
 name: Checks
 on: [push]
 
-# Define the image tag that will be built and cached.
-# It uses your DOCKERHUB_USER secret for the image name.
 env:
-  CI_IMAGE_TAG: ${{ secrets.DOCKERHUB_USER }}/recipe-app-api:ci-cache
+  CI_IMAGE_TAG: ${{ secrets.DOCKERHUB_USER }}/recipe-app-api:ci-nocache
 
 jobs:
   test-lint:
-    name: Test and Lint
     runs-on: ubuntu-latest
 
     steps:
@@ -18,46 +14,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Login to Docker Hub
-        # Required for pulling base images or for later push steps
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-
-      # PHASE 2: Cache pip packages (NEW STEP)
-      - name: Cache pip packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
-
-
-      # PHASE 3: Enable Advanced Builder
+      # PHASE 2: Enable Buildx
       - name: Set up Docker Buildx
-        # This enables BuildKit for efficient caching
         uses: docker/setup-buildx-action@v3
 
-      # PHASE 4: Build with Caching (This replaces your slow 'docker compose build')
-      - name: Build Docker Image with Cache
+      # PHASE 3: Build Docker Image (no pip caching)
+      - name: Build Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          # Tags the image with the CI_IMAGE_TAG environment variable
           tags: ${{ env.CI_IMAGE_TAG }}
-          # Use GitHub Actions cache storage to pull and push layers
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          push: false # Build locally only, do not push the final image to Docker Hub
+          push: false
 
-      # PHASE 5: Run Commands
+      # PHASE 4: Run tests and lint
       - name: Run Unit Tests
-        # Docker Compose uses the CI_IMAGE_TAG env var to find the cached image
         run: docker compose run --rm app sh -c "python manage.py test"
 
-      - name: Run Linting (Flake8)
+      - name: Run Linting
         run: docker compose run --rm app sh -c "flake8"
-
-      #adding comment just for test
