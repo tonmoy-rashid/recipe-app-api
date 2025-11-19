@@ -1,37 +1,30 @@
+---
 name: Checks
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+on: [push]
 
 jobs:
   test-lint:
     name: Test and Lint
     runs-on: ubuntu-latest
-
     steps:
-      # Step 1: Checkout your code
       - name: Checkout
-        uses: actions/checkout@v3
+        # Use v4 for better security/compatibility
+        uses: actions/checkout@v4
 
-      # Step 2: Login to Docker Hub (optional, only if you need private images)
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        # Use v3
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 3: Run Django tests inside your app container
-      - name: Run Tests
-        uses: docker/compose-action@v2
-        with:
-          compose-file: ./docker-compose.yml
-          run: app sh -c "python manage.py test"
+      - name: Build Docker Images
+        # This step is essential; it reads your docker-compose.yml
+        # and builds the 'app' service image before you can run commands against it.
+        run: docker-compose build
 
-      # Step 4: Run linting inside your app container
-      - name: Run Lint
-        uses: docker/compose-action@v2
-        with:
-          compose-file: ./docker-compose.yml
-          run: app sh -c "flake8"
+      - name: Test
+        run: docker-compose run --rm app sh -c "python manage.py test"
+
+      - name: Lint
+        run: docker-compose run --rm app sh -c "flake8"
