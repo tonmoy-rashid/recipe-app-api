@@ -24,12 +24,23 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # PHASE 2: Enable Advanced Builder
+
+      # PHASE 2: Cache pip packages (NEW STEP)
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements*.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+
+      # PHASE 3: Enable Advanced Builder
       - name: Set up Docker Buildx
         # This enables BuildKit for efficient caching
         uses: docker/setup-buildx-action@v3
 
-      # PHASE 3: Build with Caching (This replaces your slow 'docker compose build')
+      # PHASE 4: Build with Caching (This replaces your slow 'docker compose build')
       - name: Build Docker Image with Cache
         uses: docker/build-push-action@v5
         with:
@@ -41,11 +52,10 @@ jobs:
           cache-to: type=gha,mode=max
           push: false # Build locally only, do not push the final image to Docker Hub
 
-      # PHASE 4: Run Commands
+      # PHASE 5: Run Commands
       - name: Run Unit Tests
         # Docker Compose uses the CI_IMAGE_TAG env var to find the cached image
         run: docker compose run --rm app sh -c "python manage.py test"
 
       - name: Run Linting (Flake8)
         run: docker compose run --rm app sh -c "flake8"
-        # just for checks
