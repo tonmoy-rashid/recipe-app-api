@@ -1,30 +1,34 @@
 ---
 name: Checks
+
+# Trigger the workflow on every push to any branch
 on: [push]
 
 jobs:
   test-lint:
     name: Test and Lint
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        # Use v4 for better security/compatibility
+      - name: Checkout Code
+        # Fetches your repository code
         uses: actions/checkout@v4
 
       - name: Login to Docker Hub
-        # Use v3
+        # Authenticates with Docker Hub for pulling base images or for later push steps (if added)
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build Docker Images
-        # This step is essential; it reads your docker-compose.yml
-        # and builds the 'app' service image before you can run commands against it.
-        run: docker-compose build
+        # Uses the V2 syntax (docker compose) to build images defined in docker-compose.yml
+        run: docker compose build
 
-      - name: Test
-        run: docker-compose run --rm app sh -c "python manage.py test"
+      - name: Run Unit Tests
+        # Executes tests inside the 'app' service container
+        run: docker compose run --rm app sh -c "python manage.py test"
 
-      - name: Lint
-        run: docker-compose run --rm app sh -c "flake8"
+      - name: Run Linting (Flake8)
+        # Executes linting inside the 'app' service container
+        run: docker compose run --rm app sh -c "flake8"
