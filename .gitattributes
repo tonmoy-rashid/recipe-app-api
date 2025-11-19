@@ -1,0 +1,8 @@
+# Normalize all text files to LF
+* text=auto eol=lf
+
+# Explicitly enforce LF for Python files
+*.py text eol=lf
+
+# Keep Windows-style endings for batch files if needed
+*.bat text eol=crlf
