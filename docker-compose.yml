@@ -2,10 +2,15 @@
 
 services:
   app:
+    # 🌟 CHANGE HERE: If CI_IMAGE_TAG is set (in GitHub Actions), it uses that.
+    # Otherwise, it defaults to recipe-app-api:local_dev for local development and builds the image.
+    image: ${CI_IMAGE_TAG:-recipe-app-api:local_dev}
+
     build:
       context: .
       args:
         - DEV=true
+
     ports:
       - "8000:8000"
     volumes:

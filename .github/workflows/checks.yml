@@ -1,8 +1,11 @@
 ---
 name: Checks
-
-# Trigger the workflow on every push to any branch
 on: [push]
+
+# Define the image tag that will be built and cached.
+# It uses your DOCKERHUB_USER secret for the image name.
+env:
+  CI_IMAGE_TAG: ${{ secrets.DOCKERHUB_USER }}/recipe-app-api:ci-cache
 
 jobs:
   test-lint:
@@ -10,25 +13,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # PHASE 1: Setup
       - name: Checkout Code
-        # Fetches your repository code
         uses: actions/checkout@v4
 
       - name: Login to Docker Hub
-        # Authenticates with Docker Hub for pulling base images or for later push steps (if added)
+        # Required for pulling base images or for later push steps
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build Docker Images
-        # Uses the V2 syntax (docker compose) to build images defined in docker-compose.yml
-        run: docker compose build
+      # PHASE 2: Enable Advanced Builder
+      - name: Set up Docker Buildx 🛠️
+        # This enables BuildKit for efficient caching
+        uses: docker/setup-buildx-action@v3
 
-      - name: Run Unit Tests
-        # Executes tests inside the 'app' service container
+      # PHASE 3: Build with Caching (This replaces your slow 'docker compose build')
+      - name: Build Docker Image with Cache ⚡️
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          # Tags the image with the CI_IMAGE_TAG environment variable
+          tags: ${{ env.CI_IMAGE_TAG }}
+          # Use GitHub Actions cache storage to pull and push layers
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          push: false # Build locally only, do not push the final image to Docker Hub
+
+      # PHASE 4: Run Commands
+      - name: Run Unit Tests 🧪
+        # Docker Compose uses the CI_IMAGE_TAG env var to find the cached image
         run: docker compose run --rm app sh -c "python manage.py test"
 
-      - name: Run Linting (Flake8)
-        # Executes linting inside the 'app' service container
+      - name: Run Linting (Flake8) ✨
         run: docker compose run --rm app sh -c "flake8"
