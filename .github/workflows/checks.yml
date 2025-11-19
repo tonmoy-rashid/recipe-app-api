@@ -48,3 +48,4 @@ jobs:
 
       - name: Run Linting (Flake8)
         run: docker compose run --rm app sh -c "flake8"
+        # just for checks
