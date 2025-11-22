@@ -7,6 +7,7 @@ ENV PYTHONUNBUFFERED=1
 COPY ./requirements.txt /tmp/requirements.txt
 COPY ./requirements.dev.txt /tmp/requirements.dev.txt
 
+ARG DEV=false
 # Single RUN block: venv, pip, system deps, psycopg2, cleanup, user creation
 RUN python -m venv /py && /py/bin/pip install --upgrade pip && \
     apk add --update --no-cache postgresql-client && \
