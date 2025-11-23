@@ -33,7 +33,7 @@ jobs:
 
       # PHASE 4: Run tests and lint
       - name: Run Unit Tests
-        run: docker compose run --rm app sh -c "python manage.py test"
+        run: docker compose run --rm app sh -c "python manage.py wait_for_db && python manage.py test"
 
       - name: Run Linting
         run: docker compose run --rm app sh -c "flake8"
